@@ -51,12 +51,12 @@ void GazeboRosGps::Load(sensors::SensorPtr sensor, sdf::ElementPtr root)
     this->world->GetEntity(this->parent->GetParentName()));
 
   // Load the namespace
-  std::string robot_namespace = "";
+  std::string robot_namespace = "/gps/";
   if (root->HasElement("namespace"))
     robot_namespace = root->Get<std::string>("namespace") + "/";
 
   // Load the topic
-  std::string topic_name = "/gps";
+  std::string topic_name = "solution";
   if (root->HasElement("topic"))
     topic_name = root->Get<std::string>("topic");
 
@@ -70,11 +70,10 @@ void GazeboRosGps::Load(sensors::SensorPtr sensor, sdf::ElementPtr root)
 
   // Create a new ROS handle
   this->rosnode = new ros::NodeHandle(robot_namespace);
-  if (topic_name.compare("")==0)
+  if (topic_name != "")
   {
     should_pub = true;
-    this->pub_queue = this->pmq.addPub<sensor_msgs::NavSatFix>();
-    this->pub = this->rosnode->advertise<sensor_msgs::NavSatFix>(topic_name,1);
+    this->pub = this->rosnode->advertise<sensor_msgs::NavSatFix>(topic_name,1000);
   }
 
   // ROS callback queue for processing subscription
@@ -95,6 +94,12 @@ void GazeboRosGps::OnUpdate()
   this->msg.altitude = parent->GetAltitude();
 
   // Send the message
-  if (this->pub.getNumSubscribers() > 0 && this->should_pub)
-    this->pub_queue->push(this->msg,this->pub);
+  if (this->should_pub)
+    this->pub.publish(this->msg);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void GazeboRosGps::Reset()
+{
+  // Do nothing
 }
