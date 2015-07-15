@@ -25,103 +25,47 @@
 #include <ros/ros.h>
 #include <ros/callback_queue.h>
 #include <ros/advertise_options.h>
+
+#include <geometry_msgs/Point.h>
 #include <sensor_msgs/Imu.h>
 #include <std_srvs/Empty.h>
 
 #include <gazebo/physics/physics.hh>
 #include <gazebo/transport/transport.hh>
 #include <gazebo/common/common.hh>
-
-#include <gazebo_plugins/PubQueue.h>
-
+#include <gazebo/sensors/sensors.hh>
+ 
 namespace gazebo
 {
-  class GazeboRosIMU : public ModelPlugin
+  class GazeboRosImu : public SensorPlugin
   {
     /// \brief Constructor
-    public: GazeboRosIMU();
+    public: GazeboRosImu();
 
     /// \brief Destructor
-    public: virtual ~GazeboRosIMU();
+    public: virtual ~GazeboRosImu();
 
-    /// \brief Load the controller
-    /// \param node XML config node
-    public: void Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf);
+    /// \brief Callback that receives the contact sensor's update signal.
+    private: virtual void OnUpdate();
 
-    /// \brief Update the controller
-    protected: virtual void UpdateChild();
-
-    /// \brief The parent World
-    private: physics::WorldPtr world_;
-
-    /// \brief The link referred to by this plugin
-    private: physics::LinkPtr link;
-
-    /// \brief pointer to ros node
-    private: ros::NodeHandle* rosnode_;
-    private: ros::Publisher pub_;
-    private: PubQueue<sensor_msgs::Imu>::Ptr pub_Queue;
-
-    /// \brief ros message
-    private: sensor_msgs::Imu imu_msg_;
-
-    /// \brief store link name
-    private: std::string link_name_;
-
-    /// \brief topic name
-    private: std::string topic_name_;
-
-    /// \brief allow specifying constant xyz and rpy offsets
-    private: math::Pose offset_;
-
-    /// \brief A mutex to lock access to fields
-    /// that are used in message callbacks
-    private: boost::mutex lock_;
-
-    /// \brief save last_time
-    private: common::Time last_time_;
-    private: math::Vector3 last_vpos_;
-    private: math::Vector3 last_veul_;
-    private: math::Vector3 apos_;
-    private: math::Vector3 aeul_;
+    // Called on initialization
+    public: void Load(sensors::SensorPtr sensor, sdf::ElementPtr root);
     
-    // rate control
-    private: double update_rate_;
+    // Reset the sensor
+    public: void Reset();
 
-    /// \brief: keep initial pose to offset orientation in imu message
-    private: math::Pose initial_pose_;
+    // Gazebo internals
+    private: physics::WorldPtr world;
+    private: physics::LinkPtr link;
+    private: sensors::ImuSensorPtr parent;
+    private: event::ConnectionPtr conUpdate;
 
-    /// \brief Gaussian noise
-    private: double gaussian_noise_;
-
-    /// \brief Gaussian noise generator
-    private: double GaussianKernel(double mu, double sigma);
-
-    /// \brief for setting ROS name space
-    private: std::string robot_namespace_;
-
-    /// \brief call back when using service
-    private: bool ServiceCallback(std_srvs::Empty::Request &req,
-                                  std_srvs::Empty::Response &res);
-
-    private: ros::ServiceServer srv_;
-    private: std::string service_name_;
-
-    private: ros::CallbackQueue imu_queue_;
-    private: void IMUQueueThread();
-    private: boost::thread callback_queue_thread_;
-
-    // Pointer to the update event connection
-    private: event::ConnectionPtr update_connection_;
-
-    // deferred load in case ros is blocking
-    private: sdf::ElementPtr sdf;
-    private: void LoadThread();
-    private: boost::thread deferred_load_thread_;
-    private: unsigned int seed;
-
-    // ros publish multi queue, prevents publish() blocking
-    private: PubMultiQueue pmq;
+    // ROS internals
+    private: ros::NodeHandle* rosnode;
+    private: ros::Publisher pub_imu;
+    private: bool should_pub;
+    private: sensor_msgs::Imu msg_imu;
   };
 }
+
 #endif
