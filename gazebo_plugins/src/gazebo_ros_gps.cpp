@@ -73,7 +73,8 @@ void GazeboRosGps::Load(sensors::SensorPtr sensor, sdf::ElementPtr root)
   if (topic_name != "")
   {
     should_pub = true;
-    this->pub = this->rosnode->advertise<sensor_msgs::NavSatFix>(topic_name,1000);
+    this->pub_gps = this->rosnode->advertise<sensor_msgs::NavSatFix>(topic_name+(std::string)"_lla",1000);
+    this->pub_point = this->rosnode->advertise<geometry_msgs::Point>(topic_name+(std::string)"_xyz",1000);
   }
 
   // ROS callback queue for processing subscription
@@ -86,16 +87,23 @@ void GazeboRosGps::OnUpdate()
 {
   // Populate the message
   common::Time stamp = parent->GetLastMeasurementTime();
-  this->msg.header.stamp = ros::Time(stamp.sec,stamp.nsec);
-  this->msg.status.status = sensor_msgs::NavSatStatus::STATUS_FIX;
-  this->msg.status.service = sensor_msgs::NavSatStatus::SERVICE_GPS;
-  this->msg.latitude = parent->GetLatitude().Degree();
-  this->msg.longitude = parent->GetLongitude().Degree();
-  this->msg.altitude = parent->GetAltitude();
-
-  // Send the message
+  this->msg_gps.header.stamp = ros::Time(stamp.sec,stamp.nsec);
+  this->msg_gps.status.status = sensor_msgs::NavSatStatus::STATUS_FIX;
+  this->msg_gps.status.service = sensor_msgs::NavSatStatus::SERVICE_GPS;
+  this->msg_gps.latitude = parent->GetLatitude().Degree();
+  this->msg_gps.longitude = parent->GetLongitude().Degree();
+  this->msg_gps.altitude = parent->GetAltitude();
   if (this->should_pub)
-    this->pub.publish(this->msg);
+    this->pub_gps.publish(this->msg_gps);
+
+  // Publish 
+  math::Vector3 lla(msg_gps.latitude, msg_gps.longitude, msg_gps.altitude);
+  math::Vector3 xyz = world->GetSphericalCoordinates()->LocalFromSpherical(lla);
+  this->msg_point.x = xyz.x;
+  this->msg_point.y = xyz.y;
+  this->msg_point.z = xyz.z;
+  if (this->should_pub)
+    this->pub_point.publish(this->msg_point);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

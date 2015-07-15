@@ -26,6 +26,7 @@
 #include <ros/callback_queue.h>
 #include <ros/advertise_options.h>
 
+#include <geometry_msgs/Point.h>
 #include <sensor_msgs/NavSatFix.h>
 #include <std_srvs/Empty.h>
 
@@ -63,11 +64,11 @@ namespace gazebo
 
     // ROS internals
     private: ros::NodeHandle* rosnode;
-    private: ros::Publisher pub;
+    private: ros::Publisher pub_gps;
+    private: ros::Publisher pub_point;
     private: bool should_pub;
-    private: sensor_msgs::NavSatFix msg;
-    private: PubQueue<sensor_msgs::NavSatFix>::Ptr pub_queue;
-    private: PubMultiQueue pmq;
+    private: sensor_msgs::NavSatFix msg_gps;
+    private: geometry_msgs::Point msg_point;
   };
 }
 #endif
